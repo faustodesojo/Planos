@@ -1,0 +1,42 @@
+.toolbar {
+    margin-bottom: 10px;
+	display: flex;
+	align-items: center;
+	text-align: center;
+	justify-content:center;
+	flex-direction: column;
+
+}
+
+canvas {
+    border: 2px solid black;
+    background-color: white;
+    cursor: crosshair;
+}
+canvas#canvas{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+button {
+    margin: 5px;
+    padding: 5px 10px;
+    border: none;
+    background-color: #000000;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+button:hover {
+    background-color: #303030;
+}
+.linea {
+	display: flex;
+	align-items: center;
+	text-align: center;
+	justify-self: center;
+	gap: 20px;
+}

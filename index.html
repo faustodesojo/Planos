@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plano del Terreno</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="toolbar">
+        <h2>Dibuja el plano de tu terreno</h2>
+        <div class="linea"> 
+            <label for="color">Color:</label>
+            <input type="color" id="color" value="#000000">
+
+            <label for="grosor">Grosor:</label>
+            <input type="range" id="grosor" min="1" max="10" value="2">
+        
+            <label for="figura">Figura:</label>
+            <select id="figura">
+                <option value="libre">Dibujo Libre</option>
+                <option value="linea">Línea</option>
+                <option value="rectangulo">Rectángulo</option>
+                <option value="circulo">Círculo</option>
+            </select>
+        </div>
+        <div>
+            <button id="undoBtn">Deshacer</button>
+            <button id="clearBtn">Limpiar</button>
+            <button id="saveBtn">Guardar</button>
+            <button id="addTextBtn">Agregar Texto</button>
+            <button id="insertImageBtn">Insertar Imagen</button>
+            <input type="file" id="imageInput" style="display: none;" accept="image/*">
+        </div>
+    </div>
+
+    <canvas id="canvas" width="600" height="400"></canvas>
+
+    <script src="script.js"></script>
+</body>
+</html>

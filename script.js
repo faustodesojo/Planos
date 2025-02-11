@@ -8,59 +8,136 @@ const undoBtn = document.getElementById("undoBtn");
 const clearBtn = document.getElementById("clearBtn");
 const saveBtn = document.getElementById("saveBtn");
 const addTextBtn = document.getElementById("addTextBtn");
+const insertImageBtn = document.getElementById("insertImageBtn");
 const imageInput = document.getElementById("imageInput");
 
 let dibujando = false;
 let historial = [];
+let textos = [];
 let figura = "libre";
-let inicioX, inicioY;
-let imgTemporal;
 let imgObj = null;
 let imgStartX, imgStartY, imgWidth, imgHeight;
 let isResizing = false;
-let resizeHandleSize = 10; // Tamaño del área de ajuste de tamaño
+let isMoving = false;
+let addingText = false;
+let offsetX, offsetY;
+let rotationAngle = 0; // Ángulo de rotación en radianes
+const resizeHandleSize = 10; // Tamaño del área de ajuste de la imagen
 
 // Guardar estado inicial
 guardarHistorial();
 
-// Eventos para dibujar
+// Cambiar la figura seleccionada sin errores
+figuraSelect.addEventListener("change", (e) => {
+    figura = e.target.value;
+    dibujando = false; // Evitar trazos incorrectos al cambiar de figura
+});
+
+// Evento para activar el modo de agregar texto
+addTextBtn.addEventListener("click", () => {
+    addingText = true;
+});
+
+// Evento para agregar texto en cualquier parte del canvas
+canvas.addEventListener("click", (e) => {
+    if (addingText) {
+        let texto = prompt("Ingrese el texto:");
+        if (texto) {
+            textos.push({
+                text: texto,
+                x: e.offsetX,
+                y: e.offsetY,
+            });
+            redrawCanvas();
+            guardarHistorial();
+        }
+        addingText = false;
+    }
+});
+
+// Dibujar textos en el canvas
+function dibujarTextos() {
+    ctx.fillStyle = "black";
+    ctx.font = "16px Arial";
+    textos.forEach((t) => {
+        ctx.fillText(t.text, t.x, t.y);
+    });
+}
+
+// Eventos de dibujo y manipulación de imágenes
 canvas.addEventListener("mousedown", (e) => {
-    dibujando = true;
     inicioX = e.offsetX;
     inicioY = e.offsetY;
 
-    if (figura === "libre") {
-        ctx.beginPath();
-        ctx.moveTo(inicioX, inicioY);
-    } else {
-        imgTemporal = ctx.getImageData(0, 0, canvas.width, canvas.height); // Guarda el estado antes de dibujar
-    }
-
-    // Detectar si se hace clic sobre la imagen
+    // Verificar si se hace clic en la imagen
     if (imgObj) {
         let imgRight = imgStartX + imgWidth;
         let imgBottom = imgStartY + imgHeight;
+
+        // Verificar si se hace clic en el handle de redimensionamiento (esquina inferior derecha)
         if (
-            e.offsetX >= imgStartX && e.offsetX <= imgRight &&
-            e.offsetY >= imgStartY && e.offsetY <= imgBottom
+            inicioX >= imgRight - resizeHandleSize &&
+            inicioX <= imgRight &&
+            inicioY >= imgBottom - resizeHandleSize &&
+            inicioY <= imgBottom
         ) {
-            // Iniciar movimiento de la imagen
-            isResizing = false;
-            offsetX = e.offsetX - imgStartX;
-            offsetY = e.offsetY - imgStartY;
-        } else {
-            // Detectar si se hace clic sobre la esquina para redimensionar
-            if (e.offsetX >= imgRight - resizeHandleSize && e.offsetX <= imgRight &&
-                e.offsetY >= imgBottom - resizeHandleSize && e.offsetY <= imgBottom) {
-                isResizing = true;
-                offsetX = e.offsetX - imgRight;
-                offsetY = e.offsetY - imgBottom;
-            }
+            isResizing = true;
+            return;
         }
+
+        // Verificar si se hace clic en el handle de rotación (esquina superior izquierda)
+        let rotateHandleX = imgStartX + resizeHandleSize / 2;
+        let rotateHandleY = imgStartY + resizeHandleSize / 2;
+        if (
+            inicioX >= rotateHandleX - resizeHandleSize &&
+            inicioX <= rotateHandleX + resizeHandleSize &&
+            inicioY >= rotateHandleY - resizeHandleSize &&
+            inicioY <= rotateHandleY + resizeHandleSize
+        ) {
+            // Rotar la imagen 90 grados (π/2 radianes) por cada clic
+            rotationAngle += Math.PI / 2;
+            redrawCanvas();
+            return;
+        }
+
+        // Verificar si se hace clic en la imagen para moverla
+        if (
+            inicioX >= imgStartX &&
+            inicioX <= imgRight &&
+            inicioY >= imgStartY &&
+            inicioY <= imgBottom
+        ) {
+            isMoving = true;
+            offsetX = inicioX - imgStartX;
+            offsetY = inicioY - imgStartY;
+            return;
+        }
+    }
+
+    if (figura !== "libre") {
+        dibujando = true;
+    } else {
+        ctx.beginPath();
+        ctx.moveTo(inicioX, inicioY);
+        dibujando = true; // Asegurar que el dibujo libre esté activo
     }
 });
 
 canvas.addEventListener("mousemove", (e) => {
+    if (isResizing) {
+        imgWidth = Math.max(e.offsetX - imgStartX, 20);
+        imgHeight = Math.max(e.offsetY - imgStartY, 20);
+        redrawCanvas();
+        return;
+    }
+
+    if (isMoving) {
+        imgStartX = e.offsetX - offsetX;
+        imgStartY = e.offsetY - offsetY;
+        redrawCanvas();
+        return;
+    }
+
     if (!dibujando) return;
 
     let x = e.offsetX;
@@ -68,53 +145,39 @@ canvas.addEventListener("mousemove", (e) => {
 
     ctx.strokeStyle = colorPicker.value;
     ctx.lineWidth = grosorPicker.value;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    restaurarHistorial(); // Recupera la última imagen antes de empezar el trazo
 
     if (figura === "libre") {
         ctx.lineTo(x, y);
         ctx.stroke();
-    } else {
-        ctx.putImageData(imgTemporal, 0, 0); // Restaura antes de dibujar la figura
-
-        if (figura === "linea") {
-            ctx.beginPath();
-            ctx.moveTo(inicioX, inicioY);
-            ctx.lineTo(x, y);
-            ctx.stroke();
-        } else if (figura === "rectangulo") {
-            ctx.strokeRect(inicioX, inicioY, x - inicioX, y - inicioY);
-        } else if (figura === "circulo") {
-            let radio = Math.sqrt((x - inicioX) ** 2 + (y - inicioY) ** 2);
-            ctx.beginPath();
-            ctx.arc(inicioX, inicioY, radio, 0, Math.PI * 2);
-            ctx.stroke();
-        }
-    }
-
-    // Si se está moviendo o redimensionando la imagen
-    if (imgObj && (offsetX || offsetY)) {
-        if (isResizing) {
-            imgWidth = e.offsetX - imgStartX + offsetX;
-            imgHeight = e.offsetY - imgStartY + offsetY;
-            redrawCanvas();
-        } else {
-            imgStartX = e.offsetX - offsetX;
-            imgStartY = e.offsetY - offsetY;
-            redrawCanvas();
-        }
+    } else if (figura === "linea") {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        restaurarHistorial();
+        ctx.beginPath();
+        ctx.moveTo(inicioX, inicioY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+    } else if (figura === "rectangulo") {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        restaurarHistorial();
+        ctx.strokeRect(inicioX, inicioY, x - inicioX, y - inicioY);
+    } else if (figura === "circulo") {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        restaurarHistorial();
+        let radio = Math.sqrt((x - inicioX) ** 2 + (y - inicioY) ** 2);
+        ctx.beginPath();
+        ctx.arc(inicioX, inicioY, radio, 0, Math.PI * 2);
+        ctx.stroke();
     }
 });
 
 canvas.addEventListener("mouseup", () => {
     if (dibujando) {
         dibujando = false;
-        guardarHistorial(); // Guardar solo cuando termina de dibujar
+        guardarHistorial();
         ctx.beginPath();
     }
-
-    // Finalizar movimiento/redimensionamiento de imagen
-    offsetX = offsetY = null;
+    isMoving = false;
+    isResizing = false;
 });
 
 // Guardar el estado del canvas
@@ -129,104 +192,42 @@ function restaurarHistorial() {
     }
 }
 
-// Deshacer último trazo
-undoBtn.addEventListener("click", () => {
-    if (historial.length > 1) {
-        historial.pop();
-        ctx.putImageData(historial[historial.length - 1], 0, 0);
-    }
-});
-
-// Limpiar canvas
-clearBtn.addEventListener("click", () => {
+// Redibujar todo el canvas
+function redrawCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    historial = [];
-    guardarHistorial();
-});
-
-// Guardar imagen
-saveBtn.addEventListener("click", () => {
-    const link = document.createElement("a");
-    link.download = "plano.png";
-    link.href = canvas.toDataURL();
-    link.click();
-});
-
-// Cambiar tipo de figura
-figuraSelect.addEventListener("change", (e) => {
-    figura = e.target.value;
-});
-
-addTextBtn.addEventListener("click", () => {
-    agregandoTexto = true;
-});
-
-canvas.addEventListener("click", (e) => {
-    if (agregandoTexto) {
-        let texto = prompt("Ingrese el texto:");
-        if (texto) {
-            textos.push({
-                text: texto,
-                x: e.offsetX,
-                y: e.offsetY,
-            });
-            dibujarTextos();
-            guardarHistorial();
-        }
-        agregandoTexto = false;
-    }
-});
-
-// Dibujar los textos en el canvas
-function dibujarTextos() {
     restaurarHistorial();
-    ctx.fillStyle = "black";
-    ctx.font = "16px Arial";
-    textos.forEach((t) => {
-        ctx.fillText(t.text, t.x, t.y);
-    });
+
+    if (imgObj) {
+        ctx.save();
+        ctx.translate(imgStartX + imgWidth / 2, imgStartY + imgHeight / 2);
+        ctx.rotate(rotationAngle);
+        ctx.drawImage(imgObj, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
+        ctx.restore();
+
+        // Dibujar el handle de rotación (círculo azul en la esquina superior izquierda)
+        ctx.beginPath();
+        ctx.arc(imgStartX + resizeHandleSize / 2, imgStartY + resizeHandleSize / 2, resizeHandleSize, 0, Math.PI * 2);
+        ctx.fillStyle = "transparent";
+        ctx.fill();
+
+        // Dibujar el handle de redimensionamiento (cuadrado rojo en la esquina inferior derecha)
+        ctx.fillStyle = "transparent"; 
+        ctx.fillRect(
+            imgStartX + imgWidth - resizeHandleSize,
+            imgStartY + imgHeight - resizeHandleSize,
+            resizeHandleSize,
+            resizeHandleSize
+        );
+    }
+
+    dibujarTextos();
 }
 
-// Detectar si se hace clic en un texto para moverlo
-canvas.addEventListener("mousedown", (e) => {
-    textos.forEach((t) => {
-        let medida = ctx.measureText(t.text);
-        if (
-            e.offsetX >= t.x &&
-            e.offsetX <= t.x + medida.width &&
-            e.offsetY >= t.y - 16 &&
-            e.offsetY <= t.y
-        ) {
-            textoSeleccionado = t;
-            offsetX = e.offsetX - t.x;
-            offsetY = e.offsetY - t.y;
-        }
-    });
-});
-
-// Mover el texto mientras se arrastra
-canvas.addEventListener("mousemove", (e) => {
-    if (textoSeleccionado) {
-        textoSeleccionado.x = e.offsetX - offsetX;
-        textoSeleccionado.y = e.offsetY - offsetY;
-        dibujarTextos();
-    }
-});
-
-// Soltar el texto
-canvas.addEventListener("mouseup", () => {
-    if (textoSeleccionado) {
-        textoSeleccionado = null;
-        guardarHistorial();
-    }
-});
-
-// Activar la carga de la imagen al hacer clic en el botón
-document.getElementById("insertImageBtn").addEventListener("click", () => {
-    document.getElementById("imageInput").click();
-});
-
 // Insertar la imagen
+insertImageBtn.addEventListener("click", () => {
+    imageInput.click();
+});
+
 imageInput.addEventListener("change", (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -236,10 +237,11 @@ imageInput.addEventListener("change", (e) => {
             img.src = event.target.result;
             img.onload = function () {
                 imgObj = img;
-                imgStartX = canvas.width / 2 - img.width / 2; // Inicia centrado
-                imgStartY = canvas.height / 2 - img.height / 2;
-                imgWidth = img.width;
-                imgHeight = img.height;
+                imgStartX = 50;
+                imgStartY = 50;
+                imgWidth = 100;
+                imgHeight = 100;
+                rotationAngle = 0; // Reiniciar el ángulo de rotación
                 redrawCanvas();
             };
         };
@@ -247,11 +249,57 @@ imageInput.addEventListener("change", (e) => {
     }
 });
 
-// Redibujar el canvas
-function redrawCanvas() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    restaurarHistorial();
+// Guardar imagen final (sin los handles de rotación y redimensionamiento)
+saveBtn.addEventListener("click", () => {
+    // Crear un canvas temporal para dibujar el contenido sin los handles
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext("2d");
+
+    // Dibujar el contenido del canvas original en el temporal
+    tempCtx.drawImage(canvas, 0, 0);
+
+    // Si hay una imagen, dibujarla sin los handles
     if (imgObj) {
-        ctx.drawImage(imgObj, imgStartX, imgStartY, imgWidth, imgHeight);
+        tempCtx.save();
+        tempCtx.translate(imgStartX + imgWidth / 2, imgStartY + imgHeight / 2);
+        tempCtx.rotate(rotationAngle);
+        tempCtx.drawImage(imgObj, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
+        tempCtx.restore();
     }
-}
+
+    // Dibujar los textos en el canvas temporal
+    tempCtx.fillStyle = "black";
+    tempCtx.font = "16px Arial";
+    textos.forEach((t) => {
+        tempCtx.fillText(t.text, t.x, t.y);
+    });
+
+    // Guardar el canvas temporal como imagen
+    const link = document.createElement("a");
+    link.download = "plano.png";
+    link.href = tempCanvas.toDataURL();
+    link.click();
+});
+
+// Deshacer último trazo
+undoBtn.addEventListener("click", () => {
+    if (historial.length > 1) {
+        historial.pop(); // Eliminar el último estado del historial
+        textos.pop(); // Eliminar el último texto agregado
+        restaurarHistorial(); // Restaurar el estado anterior
+    }
+});
+
+// Limpiar canvas con confirmación
+clearBtn.addEventListener("click", () => {
+    const confirmar = confirm("¿Estás seguro de que deseas limpiar todo el plano?");
+    if (confirmar) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        historial = [];
+        textos = [];
+        imgObj = null;
+        guardarHistorial();
+    }
+});

@@ -24,19 +24,36 @@ button {
     margin: 5px;
     padding: 5px 10px;
     border: none;
-    background-color: #000000;
     color: white;
     cursor: pointer;
     border-radius: 5px;
 }
-
-button:hover {
-    background-color: #303030;
+#undoBtn {
+    background-color: red;
 }
+#clearBtn {
+    background-color: darkred;
+}
+#saveBtn {
+    background-color: green;
+}
+#addTextBtn {
+    background-color: blue;
+}
+#insertImageBtn {
+    background-color: #f8cb00;
+}
+button:hover {
+    opacity: 0.8;
+    scale: 1.05;
+    transition: all 0.2s ease-in-out;
+}
+
 .linea {
 	display: flex;
 	align-items: center;
 	text-align: center;
 	justify-self: center;
 	gap: 20px;
+    height: 100px;
 }

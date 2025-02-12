@@ -206,7 +206,7 @@ function redrawCanvas() {
 
         // Dibujar el handle de rotación (círculo azul en la esquina superior izquierda)
         ctx.beginPath();
-        ctx.arc(imgStartX + resizeHandleSize / 2, imgStartY + resizeHandleSize / 2, resizeHandleSize, 0, Math.PI * 2);
+        ctx.arc(imgStartX + resizeHandleSize / -52, imgStartY + resizeHandleSize / -52, resizeHandleSize, 0, Math.PI * 2);
         ctx.fillStyle = "transparent";
         ctx.fill();
 
@@ -276,11 +276,12 @@ saveBtn.addEventListener("click", () => {
         tempCtx.fillText(t.text, t.x, t.y);
     });
 
-    // Guardar el canvas temporal como imagen
-    const link = document.createElement("a");
-    link.download = "plano.png";
-    link.href = tempCanvas.toDataURL();
-    link.click();
+ // Guardar el canvas temporal como imagen BMP
+const link = document.createElement("a");
+link.download = "plano.bmp";
+link.href = canvas.toDataURL("image/bmp");
+link.click();
+
 });
 
 // Deshacer último trazo

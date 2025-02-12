@@ -23,6 +23,7 @@ let addingText = false;
 let offsetX, offsetY;
 let rotationAngle = 0; // Ángulo de rotación en radianes
 const resizeHandleSize = 10; // Tamaño del área de ajuste de la imagen
+let herramientaActiva = "dibujo"; // Variable para rastrear la herramienta activa
 
 // Guardar estado inicial
 guardarHistorial();
@@ -30,17 +31,20 @@ guardarHistorial();
 // Cambiar la figura seleccionada sin errores
 figuraSelect.addEventListener("change", (e) => {
     figura = e.target.value;
+    herramientaActiva = "dibujo"; // Cambiar a modo de dibujo al seleccionar una figura
+    addingText = false; // Desactivar el modo de texto
     dibujando = false; // Evitar trazos incorrectos al cambiar de figura
 });
 
 // Evento para activar el modo de agregar texto
 addTextBtn.addEventListener("click", () => {
+    herramientaActiva = "texto";
     addingText = true;
 });
 
 // Evento para agregar texto en cualquier parte del canvas
 canvas.addEventListener("click", (e) => {
-    if (addingText) {
+    if (herramientaActiva === "texto" && addingText) {
         let texto = prompt("Ingrese el texto:");
         if (texto) {
             textos.push({
@@ -51,7 +55,6 @@ canvas.addEventListener("click", (e) => {
             redrawCanvas();
             guardarHistorial();
         }
-        addingText = false;
     }
 });
 
@@ -66,6 +69,8 @@ function dibujarTextos() {
 
 // Eventos de dibujo y manipulación de imágenes
 canvas.addEventListener("mousedown", (e) => {
+    if (herramientaActiva === "texto") return; // No hacer nada si el modo de texto está activo
+
     inicioX = e.offsetX;
     inicioY = e.offsetY;
 
@@ -225,6 +230,8 @@ function redrawCanvas() {
 
 // Insertar la imagen
 insertImageBtn.addEventListener("click", () => {
+    herramientaActiva = "imagen"; // Cambiar a modo de imagen al hacer clic en el botón de insertar imagen
+    addingText = false; // Desactivar el modo de texto
     imageInput.click();
 });
 
@@ -276,12 +283,11 @@ saveBtn.addEventListener("click", () => {
         tempCtx.fillText(t.text, t.x, t.y);
     });
 
- // Guardar el canvas temporal como imagen BMP
-const link = document.createElement("a");
-link.download = "plano.bmp";
-link.href = canvas.toDataURL("image/bmp");
-link.click();
-
+    // Guardar el canvas temporal como imagen BMP
+    const link = document.createElement("a");
+    link.download = "plano.bmp";
+    link.href = canvas.toDataURL("image/bmp");
+    link.click();
 });
 
 // Deshacer último trazo

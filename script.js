@@ -258,6 +258,9 @@ imageInput.addEventListener("change", (e) => {
 
 // Guardar imagen final (sin los handles de rotación y redimensionamiento)
 saveBtn.addEventListener("click", () => {
+    // Obtener el valor del input con id "pres"
+    const presupuestoNumero = document.getElementById("pres").value;
+
     // Crear un canvas temporal para dibujar el contenido sin los handles
     const tempCanvas = document.createElement("canvas");
     tempCanvas.width = canvas.width;
@@ -283,10 +286,10 @@ saveBtn.addEventListener("click", () => {
         tempCtx.fillText(t.text, t.x, t.y);
     });
 
-    // Guardar el canvas temporal como imagen BMP
+    // Guardar el canvas temporal como imagen png
     const link = document.createElement("a");
-    link.download = "plano.bmp";
-    link.href = canvas.toDataURL("image/bmp");
+    link.download = `${presupuestoNumero}.png`; // Usar el valor del input como nombre del archivo
+    link.href = tempCanvas.toDataURL("image/png");
     link.click();
 });
 
